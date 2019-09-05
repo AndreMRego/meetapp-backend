@@ -6,6 +6,9 @@ import UserController from './app/controllers/UserController'
 import SessionController from './app/controllers/SessionController'
 import FileController from './app/controllers/FileController'
 import MeetUpController from './app/controllers/MeetUpController'
+import PaginateController from './app/controllers/PaginateController'
+import SubscriptionController from './app/controllers/SubscriptionController'
+
 import authMiddleware from './app/middlewares/auth'
 
 const routes = new Router()
@@ -21,6 +24,10 @@ routes.get('/meetups', MeetUpController.index)
 routes.put('/meetups/:id', MeetUpController.update)
 routes.post('/meetups', MeetUpController.store)
 routes.delete('/meetups/:id', MeetUpController.delete)
+
+routes.get('/organizing', PaginateController.index)
+routes.get('/subscriptions', SubscriptionController.index)
+routes.post('/meetups/:id/subscriptions', SubscriptionController.store)
 
 routes.post('/files', upload.single('file'), FileController.store)
 

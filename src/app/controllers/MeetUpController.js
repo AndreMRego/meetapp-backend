@@ -1,5 +1,5 @@
 import * as Yup from 'yup'
-import { startOfHour, parseISO, isBefore, isAfter, subHours } from 'date-fns'
+import { parseISO, isBefore } from 'date-fns'
 
 import Meetup from '../models/Meetup'
 import User from '../models/User'
@@ -27,10 +27,10 @@ class MeetUpController {
   async store(req, res) {
     const schema = Yup.object().shape({
       title: Yup.string().required(),
+      banner_id: Yup.number().required(),
       description: Yup.string().required(),
       localization: Yup.string().required(),
       date: Yup.date().required(),
-      banner_id: Yup.number().required(),
     })
 
     if (!(await schema.isValid(req.body))) {
@@ -45,14 +45,9 @@ class MeetUpController {
     }
 
     /*
-     * transform string in object date
-     */
-    const hourStart = startOfHour(parseISO(date))
-
-    /*
      * Check for past dates
      */
-    if (isBefore(hourStart, new Date())) {
+    if (isBefore(parseISO(date), new Date())) {
       return res.status(400).json({ error: 'Past dates are not permitted' })
     }
 
@@ -104,22 +99,19 @@ class MeetUpController {
     }
 
     /*
-     * Check for past dates
+     * Check date invalid
      */
-    if (isBefore(meetup.date, new Date())) {
-      return res.status(400).json({ error: 'Past dates are not permitted' })
+    if (isBefore(parseISO(req.body.date), new Date())) {
+      return res.status(400).json({ error: 'Date Invalid' })
     }
 
-    const {
-      id,
-      title,
-      description,
-      localization,
-      date,
-      banner_id,
-    } = await meetup.update(req.body)
+    if (meetup.past) {
+      return res.status(400).json({ error: "Can't update past meetups." })
+    }
 
-    return res.json({ id, title, description, localization, date, banner_id })
+    await meetup.update(req.body)
+
+    return res.json(meetup)
   }
 
   async delete(req, res) {
@@ -139,13 +131,13 @@ class MeetUpController {
     /*
      * Check for past dates
      */
-    if (isBefore(meetup.date, new Date())) {
-      return res.status(400).json({ error: 'Past dates are not permitted' })
+    if (meetup.past) {
+      return res.status(400).json({ error: "Can't update past meetups." })
     }
 
-    const meetupDelete = await Meetup.destroy({ where: { id: req.params.id } })
+    await meetup.destroy()
 
-    return res.json(meetupDelete)
+    return res.send()
   }
 }
 
