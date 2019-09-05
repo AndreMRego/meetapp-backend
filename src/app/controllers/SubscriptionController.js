@@ -3,8 +3,9 @@ import { Op } from 'sequelize'
 import Subscription from '../models/Subscription'
 import Meetup from '../models/Meetup'
 import User from '../models/User'
-import Mail from '../../lib/Mail'
 
+import ConfirmationMail from '../jobs/ConfirmationMail'
+import Queue from '../../lib/Queue'
 class SubscriptionController {
   async index(req, res) {
     const subscriptions = await Subscription.findAll({
@@ -22,6 +23,7 @@ class SubscriptionController {
           required: true,
         },
       ],
+      order: [['meetup', 'date']],
     })
     return res.json(subscriptions)
   }
@@ -90,26 +92,10 @@ class SubscriptionController {
       user_id: req.userId,
       meetup_id: meetup.id,
     })
-
-    await Mail.sendMail({
-      to: `${meetup.user.name} <${meetup.user.email}`,
-      subject: 'Nova Inscrição',
-      template: 'confirmation',
-      context: {
-        organizer: meetup.user.name,
-        meetup: meetup.title,
-        user: user.name,
-        email: user.email,
-      },
+    await Queue.add(ConfirmationMail.key, {
+      user,
+      meetup,
     })
-    /* const meetup2 = await Meetup.create({
-      user_id: req.userId,
-      title,
-      description,
-      localization,
-      date,
-      banner_id,
-    }) */
 
     return res.json(subscription)
   }
