@@ -15,7 +15,7 @@ class ConfirmationMail {
 
     await Mail.sendMail({
       to: `${meetup.user.name} <${meetup.user.email}`,
-      subject: 'Nova Inscrição',
+      subject: `${meetup.title} Nova Inscrição`,
       template: 'confirmation',
       context: {
         organizer: meetup.user.name,

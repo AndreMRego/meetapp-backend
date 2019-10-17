@@ -1,5 +1,6 @@
 import * as Yup from 'yup'
-import { parseISO, isBefore } from 'date-fns'
+import { parseISO, isBefore, startOfDay, endOfDay } from 'date-fns'
+import { Op } from 'sequelize'
 
 import Meetup from '../models/Meetup'
 import User from '../models/User'
@@ -7,17 +8,32 @@ import File from '../models/File'
 
 class MeetUpController {
   async index(req, res) {
+    const { page = 1, date } = req.query
+
+    if (!date) {
+      return res.status(400).json({ error: 'Invalid date' })
+    }
+
     const meetups = await Meetup.findAll({
       where: {
-        user_id: req.userId,
+        date: {
+          [Op.between]: [startOfDay(parseISO(date)), endOfDay(parseISO(date))],
+        },
       },
       order: ['date'],
       attributes: ['id', 'title', 'description', 'localization', 'date'],
+      limit: 10,
+      offset: 10 * page - 10,
       include: [
         {
           model: File,
           as: 'banner',
           attributes: ['id', 'path', 'url'],
+        },
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'name'],
         },
       ],
     })
@@ -37,7 +53,7 @@ class MeetUpController {
       return res.status(400).json({ error: 'Validation fails' })
     }
 
-    const { title, description, localization, date, banner_id } = req.body
+    const { date } = req.body
 
     const user = await User.findByPk(req.userId)
     if (!user) {
@@ -52,12 +68,8 @@ class MeetUpController {
     }
 
     const meetup = await Meetup.create({
+      ...req.body,
       user_id: req.userId,
-      title,
-      description,
-      localization,
-      date,
-      banner_id,
     })
 
     return res.json(meetup)

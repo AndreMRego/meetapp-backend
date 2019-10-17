@@ -6,7 +6,7 @@ import UserController from './app/controllers/UserController'
 import SessionController from './app/controllers/SessionController'
 import FileController from './app/controllers/FileController'
 import MeetUpController from './app/controllers/MeetUpController'
-import PaginateController from './app/controllers/PaginateController'
+import OrganizeController from './app/controllers/OrganizeController'
 import SubscriptionController from './app/controllers/SubscriptionController'
 
 import authMiddleware from './app/middlewares/auth'
@@ -25,7 +25,7 @@ routes.put('/meetups/:id', MeetUpController.update)
 routes.post('/meetups', MeetUpController.store)
 routes.delete('/meetups/:id', MeetUpController.delete)
 
-routes.get('/organizing', PaginateController.index)
+routes.get('/organizing', OrganizeController.index)
 routes.get('/subscriptions', SubscriptionController.index)
 routes.post('/meetups/:id/subscriptions', SubscriptionController.store)
 
