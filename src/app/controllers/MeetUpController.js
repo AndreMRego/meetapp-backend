@@ -26,18 +26,40 @@ class MeetUpController {
       offset: 10 * page - 10,
       include: [
         {
-          model: File,
-          as: 'banner',
-          attributes: ['id', 'path', 'url'],
-        },
-        {
           model: User,
           as: 'user',
-          attributes: ['id', 'name'],
+          attributes: ['id', 'name', 'email'],
+        },
+        {
+          model: File,
+          as: 'banner',
+          attributes: ['id', 'name', 'path', 'url'],
         },
       ],
     })
     return res.json(meetups)
+  }
+
+  async getItem(req, res) {
+    const { id } = req.params
+
+    const meetup = await Meetup.findOne({
+      where: { id, user_id: req.userId },
+      attributes: ['id', 'title', 'description', 'localization', 'date'],
+      include: [
+        {
+          model: File,
+          as: 'banner',
+          attributes: ['id', 'name', 'path', 'url'],
+        },
+      ],
+    })
+
+    if (!meetup) {
+      return res.status(400).json({ error: "Meetup  doesn't exist " })
+    }
+
+    return res.json(meetup)
   }
 
   async store(req, res) {
@@ -53,8 +75,6 @@ class MeetUpController {
       return res.status(400).json({ error: 'Validation fails' })
     }
 
-    const { date } = req.body
-
     const user = await User.findByPk(req.userId)
     if (!user) {
       return res.status(401).json({ error: 'User not found' })
@@ -63,7 +83,7 @@ class MeetUpController {
     /*
      * Check for past dates
      */
-    if (isBefore(parseISO(date), new Date())) {
+    if (isBefore(parseISO(req.body.date), new Date())) {
       return res.status(400).json({ error: 'Past dates are not permitted' })
     }
 
@@ -114,7 +134,7 @@ class MeetUpController {
      * Check date invalid
      */
     if (isBefore(parseISO(req.body.date), new Date())) {
-      return res.status(400).json({ error: 'Date Invalid' })
+      return res.status(400).json({ error: 'Past dates are not permitted' })
     }
 
     if (meetup.past) {

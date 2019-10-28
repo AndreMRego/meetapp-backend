@@ -13,7 +13,7 @@ class OrganizeController {
         {
           model: File,
           as: 'banner',
-          attributes: ['id', 'path', 'url'],
+          attributes: ['id', 'name', 'path', 'url'],
         },
       ],
     })

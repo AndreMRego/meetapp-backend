@@ -3,6 +3,7 @@ import { Op } from 'sequelize'
 import Subscription from '../models/Subscription'
 import Meetup from '../models/Meetup'
 import User from '../models/User'
+import File from '../models/File'
 
 import ConfirmationMail from '../jobs/ConfirmationMail'
 import Queue from '../../lib/Queue'
@@ -10,6 +11,7 @@ class SubscriptionController {
   async index(req, res) {
     const subscriptions = await Subscription.findAll({
       where: { user_id: req.userId },
+      attributes: ['id', 'meetup_id', 'user_id'],
       include: [
         {
           model: Meetup,
@@ -20,6 +22,18 @@ class SubscriptionController {
               [Op.gt]: new Date(),
             },
           },
+          include: [
+            {
+              model: User,
+              as: 'user',
+              attributes: ['id', 'name', 'email'],
+            },
+            {
+              model: File,
+              as: 'banner',
+              attributes: ['id', 'name', 'path', 'url'],
+            },
+          ],
           required: true,
         },
       ],
@@ -57,7 +71,7 @@ class SubscriptionController {
      * Check two subscriptions
      */
     const TwoSubscription = await Subscription.findOne({
-      where: { user_id: req.userId, meetup_id: meetup.id },
+      where: { user_id: user.id, meetup_id: meetup.id },
     })
 
     if (TwoSubscription) {
@@ -69,7 +83,7 @@ class SubscriptionController {
      */
 
     const checkTwoMeetups = await Subscription.findOne({
-      where: { user_id: req.userId },
+      where: { user_id: user.id },
       include: [
         {
           model: Meetup,
@@ -89,7 +103,7 @@ class SubscriptionController {
     }
 
     const subscription = await Subscription.create({
-      user_id: req.userId,
+      user_id: user.id,
       meetup_id: meetup.id,
     })
     await Queue.add(ConfirmationMail.key, {
@@ -98,6 +112,28 @@ class SubscriptionController {
     })
 
     return res.json(subscription)
+  }
+
+  async delete(req, res) {
+    /*
+     * Check subscription
+     */
+    const subscription = await Subscription.findByPk(req.params.id)
+
+    if (!subscription) {
+      return res.status(400).json({ error: "Subscription doesn't exist" })
+    }
+
+    /*
+     * Check for user
+     */
+    if (subscription.user_id !== req.userId) {
+      return res.status(400).json({ error: "Can't delete subscribe" })
+    }
+
+    await subscription.destroy()
+
+    return res.send()
   }
 }
 
